@@ -1,0 +1,258 @@
+Health Check Script for Netscout's nGeniusOne and Infinistreams devices. The script ouputs health-check summary and attachments in email.
+
+**Devices supported are all linux based PM R710/20/30 and IS 45xx/69xx/79xx/89xx/97xx/98xx models. Virtual appliances, and COTs IS models are currently not supported in this script
+
+Usage:-
+./dev_hc.v2.5.py -f <PMs IP file> -i < IS IP file> -l <Link_Status: Yes or No> -s <Email subject>
+
+Inputs:-
+- PM IP file format
+     10.93.79.140,GPM
+     10.193.141.193,GPM
+     10.193.141.192,Local_PM
+     10.193.86.6,Local_PM
+     10.193.68.221,Stdby_PM
+-IS IP file format
+     10.213.133.64
+     10.213.133.65
+     10.213.133.66
+     10.213.133.67
+-Link status should be Yes for the script to generate IS_Interface_Stats table, otherwise No.
+
+-Email subject should be entered as needed.
+
+version 2.5.4:-
+Date:- 11/30/2017
+  
+  -- Added support for NON ROOT logins. Redid all the ssh commands for probe and PM (Requirement from VZW)
+  
+  -- Added Peak Packet drop % in for IS Interface stats (suggested by Norm)
+
+  -- Added paservic restart checks on nG1 (suggested by Marc)
+
+  -- Added separate metrics for HDD FAILING and HDD FOREIGN 
+
+  -- Added Packet data retention (sggested by Carlos)
+
+  -- Added nsprobe uptime in IS HC and error check if its gt than 100 days(suggested by Patricia)
+
+  -- Added check on IS interface TCM connection shortages (suggested by Patricia)
+
+  -- Added check on IS Dengine running time > 8 hr (suggested by Patricia)
+
+  -- Added check on "USB, SATA and XFS_WANT_CORRUPTED_RETURN" in /var/log/messages (suggested by Patricia)
+  
+  -- Added vifn_mode in IS interface stats
+  
+  -- Added GTPV2_NON_Corr metric (from get dump scn <ifn>) for control and data plane correlation stats
+
+
+
+version 2.4:-
+Date:-02/20/2017
+
+
+  -- Aggregated several metrics and added Health check summary on email body
+
+  -- Added S1 nas deciphering rate for s1 interfaces (suggested by Rafi and Surya)
+
+  -- Merged PM and IS error files into one file
+
+  -- Changed IS_link_table_status file name to IS_Interface_Stats.html
+
+  -- Added SCSI error checks on PM devices (suggested by Patricia)
+
+  -- Added Interface types in IS_Healthcheck data (suggested by Norm)
+
+  -- Added Voice monitotring, ASI mode in IS_Healthcheck 
+
+  -- Deprecated error checks on 200 days for IS as the issue has been resolved in 5.5.
+
+  -- Added localconsole inaccessible and nshwmon log error checks for IS.
+
+
+
+version 2.3:-
+ 
+  -- Added Peak PPS Time in IS_link html Report (suggested by David) (09/26/16)
+
+  -- Added nsprobe memory in IS_link html Report (Suggested by Raj) (10/20/16)
+
+  -- IS_link Report should not show IS that are not IS file (suggested by Raj) (10/20/16)
+ 
+  -- Added Server IP for Probe (suggested by Raj) (10/20/16)
+
+  -- Included Infinistream timeout during past 24 hour in PM Report( suggested by Rafi) (10/25/16)
+
+  -- Included PM Blackout during Today in PM Report(suggested by Surya)(10/25/16)
+
+  -- Included PM config backup check (suggested by Patricia)(10/26/16)
+
+  -- Included Peak Active streams metric in IS_link Report (10/26/16)
+
+  -- Fixed  the broken IS_link Report for 5.5.2 environment  (10/26/16)
+
+version 2.2:-
+  
+  -- Added NTP not running error check in error report (suggested by Raj)(06/30/16)
+ 
+  -- Added "Missing" HDD detection (suggested by David, Ang)(07/15/16)
+  
+  -- Added PM Restart detection in full report and error check ( Suggested by Patricia ) (07/15/16)
+  
+  -- Added Peak ASI rows and ASI logging time column for PMs (08/03/16)
+  
+  -- Added IS interface type in link report (08 /08/16)
+
+  -- Added CDM count and changed NTP ouput separator(Taral)(08 /08/16)
+
+  -- Added XDR Size, Oldest XDR date and Packet Store Size columns in IS csv report (08 /08/16)
+
+
+version 2.1:-
+  -- Added ssh timeout function to report IS or PM (that are pingable) but couldnt ssh, timeout value is 60s.(06/12/16)
+version 1.8,1.9,2.0:-Enhancement for IMS specific reports
+  
+ 
+  -- Included IS count in Link report (req by Erdem) (05/19/16)
+  
+  -- Included Sip_db_sessions in link report (req by Erdem) (05/19/16)
+  
+  -- Added Model,cpu,verion and Table drops in link eport (req by Erdem) (06/12/16)
+  
+  -- aggregate sip sessions and PPS per IS (req by Erdem) (06/12/16)
+
+Version 1.7:-
+  -- Added table_size_allocation ctrl data in IS full report (Suggested By Surya) (05/16/16)
+  
+  -- IS Link report has been expanded to include Total memory, free memory , table size allocation and table drops (05/16/16)
+
+Version 1.6:-
+  -- Fixed bug in v1.5, reported around list assignment when number of PMs are lesser than cpu threads. (by Keyur, Brandon, and Bill) (05/16/16)
+
+
+
+Version 1.5:-
+   -- Added IS interfaces Link status report in html using hourly_vital_stats table in Local PMs (Suggested by Bill and team) (05/12/16)
+   
+   -- Added DB connection status in PM report and checking it on error function if its greater than 90 ( Suggested by Raj ) (05/10/16)
+   
+   -- Added version information on email body (suggested by Brandon) (05/10/16)
+   
+   -- Changed the column name:Disk_available(/opt) to Disk_Use(/opt) on PM reports. (Suggested by Micheal ) (05/12/16)
+   
+   -- PM peak memory utilizion to report the latest data instead of yesterday (suggested by Patricia) (05/12/16)
+   
+   -- Added /xdr Disk usage in IS report (05/15/16)
+   
+   -- Added Partition check on IS '/', '/metadata' and '/xdr partitions' (05/15/16)
+   
+   -- Full Reports and error summary data are now sorted based on IPs (05/15/16)
+   
+   -- Date information has been added on error summaries (05/15/16)
+  
+   -- Changes in PM IP file. Need to add Local or standby PM to make sure not to check hourly_vital_stats table in standby PMs. New PM IP file should look like below:
+     10.93.79.140,GPM
+     10.193.141.193,GPM
+     10.193.141.192,Local_PM
+     10.193.86.6,Local_PM
+     10.193.68.221,Stdby_PM
+     
+     *** Global and global standby should be written as 'GPM'
+     
+   -- With the addition of Link status report, script now has an additional argumument '-l' and should run as below:-
+    ./dev_hc.v1.5.py -f <PMs IP file> -i < IS IP file> -l <Link_Status: Yes or No> -s <email subject>
+   
+    for e.g :-
+    ./dev_hc_v1.5.py -f dev_pm2 -i dev_is.txt -l Yes -s "North-East PMs and IS Healthchecks and Linkstatus `date`"
+    If -l is 'Yes', script will run the link status function and create a report for IS interfaces link status. Otherwise if -l is 'No', script will not run the link status function.
+    
+Version 1.4:-
+   -- Fixed the bug PM around memory showing mulitple values,and causing error summary to miss the errors(reported by Patricia) (04/14/16)
+   
+   -- Change Disk_available description to Disk_Size on IS(Suggested by Bill ) (04/14/16)
+
+
+Version 1.3:-
+   -- Table drops in IS have been modified to show only the more recent drops i.e. from yesterday to current (Suggested by Moravec Brandon) (03/25/16)
+   
+   -- Core File metric in IS has been modified to show core files generated within last 48 hrs.(03/25/16)
+   
+   -- included number of rows against each table in error summary. (03/25/16)
+   
+   -- Script has been modified to support IPv6 PMs and IS (Suggested by Ang IMS) (03/27/16)
+   
+   -- Few PM HW status metrics added from 'omreport chassis command'(03/27/16)
+     'Fan Status',	'Memory Status','Power Status','Temp Status','Voltage Status','Batteries Status'
+     
+   -- 'Failed HDD' has be added on PM report (03/27/16)
+   
+Version 1.2:-
+   -- Script gets hung while generating nshwmon script on some of 8995Ds (reported by Uday in West and Ang in IMS). Script now has been modified to use nshwmon logs instead of generating it. 
+      As a result script is now much faster than before.(03/23/16)
+      
+Version 1.1:-
+    
+   -- Added following Infinistreams metrics 
+       'IS_Processes' ,'Disk_available(/metadata)' (03/17/16)
+
+   -- Added following PM metrics
+        'upitme', 'OS version', 'Disk_available(/)','PM Postgres threads','PM Webservice threads','PM ngenius processes' (03/17/16)
+
+   -- Added Infinistream Processes check and PM Database, Webservice and Diskavailable checks on error summaries (03/18/16)
+   
+   -- Corrected bug around Disk Size check (reported by Patricia 03/18/16)  
+   
+   -- Fixed the missing data around  Peak PM process memories column (03/19/16)  
+   
+   -- Inserted space between table drop entries to make them better visible (03/19/16)    
+ 
+Version 1.0:- 
+   --This script works on python v2.4 and above
+   
+   --NETSCOUT IS and PM Device Health check script prepared by Syed Rehman(last updated 12/01/15)
+   
+   --Included date,hwclock,uptime,load_average and serial number on IS data (01/20/16)
+   
+   --Included Multithreading module to trigger parallel SSH commands to multiple PMs and IS boxes (02/04/16)
+   
+   --Included several other metrics for IS and PM. For complete List see IS_col and PM_col (02/16/16)
+   
+    PM_col= ['Hostname', 'IP', 'Total-CPU','Total-Mem' ,'serial_number', 'Linux Kernel version', 'version', 'NTP status', 
+     'Online HDD', 'Peak CPU utilization','DELL OMSA version', 'iDrac version', ' iDrac IP', 'iDrac link connected',
+     'Peak content_memory', 'Peak asiwarehouse_memory', 'Peak asiservicewarehouse_memory', 'Peak webxpresentmemory', 'Peak uccontentmemory',
+     'Peak CDM loggermemory', 'Peak CDM flowloggermemory', 'Peak CDM fdsindexingmemory', 'Peak asi2xloggermemory', 'Peak analyticsmemory', 
+     'Peak CDM whmemory', 'Peak webxreportgenmemory', 'Peak flowrollupmemorylog','Peak ASI flow'  ]
+     
+     IS_col= ['Hostname', 'IP', 'Date', 'HW_Clock', ' IPMI IP',  'Model', 'Version', 'Serial Number','Linux kernel Version', 'CPU', 'Memory', 
+     'Uptime', 'Load_Average', 'HDD', 'Failed HDD', 'Failed HDD Desc', 'FAN Status', 'POWER Status', 'Temperature Status', 'Voltage Status' ,'NTP IP',
+     'NTP_strartum Status','NTP delay(ms)', 'Core_file','Duplex_mode', 'Disk_available','Free_mem', 'Table_drops']
+     
+   -- Added IS_error_summary and PM_error_summary output and email body  (02/20/16) 
+
+ Usage:-
+   -- Before running change the email address on "To" varaible in the script
+    
+   -- Run the script on the box that has ssh trusts of all PMs and IS 
+   
+      ./dev_hc.py -f <PMs IP file> i < IS IP file> -s <email subject>
+    for e.g. 
+      /opt/scripts/hc.py -f /opt/scripts/dev_pm.txt -i /opt/scripts/dev_is1.txt -s " North-East PM & IS HealthChecks `date`"
+      
+    -- PM IP file should have this format
+     10.193.79.140,GPM
+     10.193.141.193,GPM
+     10.193.141.192,PM
+     10.193.86.6,PM
+   
+      GPM indicates Global PM and PM indicates local PM
+   
+   --IS IP File should have only IPs i.e.
+     10.213.133.64
+     10.213.133.65
+     10.213.133.66
+     10.213.133.67
+
+   
+ 
+ 
