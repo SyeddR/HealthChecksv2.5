@@ -1318,7 +1318,7 @@ def IS_data_collection (is_output,link_data,IS_col):
                        elif Vifn[0]  in IS_If_vifn_mode:
                              IS_If_vifn_mode[Vifn[0]]+=1
  
-                    if re.search('[0-9]',str(link_data[ip]['data_'+IF][6])):
+                    if re.search('[0-9]',str(link_data[ip]['data_'+IF][7])):
                           Total_If_voice+=1
                     if link_data[ip]['data_'+IF][1]==0.000:
                           Total_If_notraffic+=1
