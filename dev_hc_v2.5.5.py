@@ -1013,7 +1013,6 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
                                 html+="""<td> null </td>"""                  
                  #### GTP correlation
                  if GTPv2_DATA_Corr:
-                     if gtp_corr != 'NA' or None:
                         try:
                           gtpv2_data_corr=re.findall('if_%s:((?:.*))'%j,gtp_corr)[0]
                         except:
@@ -1023,8 +1022,8 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
                         else:
                            html+="""<td> NA </td>"""
                        
-                     else:
-                        html+="""<td> NA </td>""" 
+                     #else:
+                        #html+="""<td> NA </td>""" 
                  #### Table_size_allocation cell
                  if if_table_size_list:
                     for l in if_table_size_list:
