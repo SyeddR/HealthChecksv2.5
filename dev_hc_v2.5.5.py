@@ -650,7 +650,7 @@ def IS_ssh (j,link_data):
     comm= [ """ hostname """,
      """ cat /etc/sysconfig/network-scripts/ifcfg-eth0|grep -i ipaddr |cut -d= -f2 """,
      """ date """,
-     """ sudo hwclock """,
+     """ sudo sh -c hwclock """,
      """ sudo ipmitool lan print |grep -i "IP Address"| tail -1| cut -d: -f2 """,
      """ pkill -9 localconsole;echo -e "11\\nget agent\\nexit\\n"| sudo /opt/NetScout/rtm/bin/localconsole| grep model_number|awk '{print $3}' """,
      """  echo -e "11\\nget agent\\nexit\\n"| sudo /opt/NetScout/rtm/bin/localconsole| grep software_version| awk '{print $2,$3,$4,$5}' """,
@@ -665,7 +665,7 @@ def IS_ssh (j,link_data):
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*"| tail -n 2 | head -n 1 |xargs cat|grep Disk| sort|uniq|wc -l """,
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*"| tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -e "FAILED" -e "AVAILABLE" -e "MISSING" |sort| uniq |wc -l """,
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*" | tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -e "FAILED" -e "AVAILABLE" -e "MISSING" |sort| uniq|grep -o -e " Infin.* Disk" -e " ESU.* Disk"|awk '{print $1,$3,$4}' |awk {print} ORS=" ," """,
-     """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*"| tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -i "FAILING"|sort| uniq |wc -l """,    
+     """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*"| tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -i -e "FAILING" -e "ECC"|sort| uniq |wc -l """,    
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*" | tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -i "FOREIGN"|sort| uniq |wc -l """,
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*" | tail -n 2 | head -n 1 |xargs cat|grep "FAN STATUS"|sort|uniq|head -n 1| awk '{print$7}' """,
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*" | tail -n 2 | head -n 1 |xargs cat|grep "POWER SUPPLY STATUS"|sort|uniq|head -n 1| awk '{print$9}' """,
@@ -693,7 +693,7 @@ def IS_ssh (j,link_data):
     ### For packet retention
     comm.append(""" sudo /opt/NetScout/rtm/tools/printstore -pkt|head -20| sed -n 7,20p |grep  m*Time""" )
     ### For Erros in /var/log messages "USB, XDR, SATA"
-    comm.append(""" sudo grep -e "couldn't allocate port*usb_device" -e "XFS_WANT_CORRUPTED" -e "SATA" /var/log/messages|uniq""" )
+    comm.append(""" sudo grep -e "couldn't allocate port*usb_device" -e "XFS_WANT_CORRUPTED" -e "SATA" /var/log/messages|uniq|grep -v "TTY" """ )
     ### Dengine greater than 8 hour
     comm.append(""" sudo ps -eo pid,etime,comm | awk '{if($2~/-.*:.*:/ || $2~/0?[8-9]:.*:.*/ || $2~/[1-2][0-9]:.*:.*/) print $2,$3}'|grep dengine """)
     If_comm=''
@@ -904,8 +904,9 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
       #   model="NA"
       #   #sip_db_out="NA"
       #   gtp_corr="NA"
-         
-      #####  Total sip_db Max_session per box
+       ##Keys: 24_hr_util, 24_hr_pps, pps_time, last_hr_pps, dp_peak,dp_time, dp_peak_pps, active_str, tot_pkts  
+      
+       #####  Total sip_db Max_session per box
          if sip_db_out != 'NA':
             sess=re.findall('if_.*:(.*),.*,.*,.*',sip_db_out)
             total_sess=0
@@ -923,12 +924,15 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
          for dt in Data[i]['IF']:
              
                  link_data=Data[i]['data_'+dt]
-                 total_pps+=link_data[1]
-                 total_pkt_drops+=int(link_data[4])
-                 total_pkts+=(link_data[7])
+                 total_pps+=link_data['24_hr_pps']
+                 total_pkt_drops+=int(link_data['dp_peak'])
+                 total_pkts+=(link_data['tot_pkts'])
                  if Voice_IS:
-                     if re.search('[0-9]',str(link_data[6])):
-                        total_streams+=float(link_data[6])
+                     #if re.search('[0-9]',str(link_data['active_str'])):
+                    try:
+                        total_streams+=float(link_data['active_str'])
+                    except KeyError:
+                        total_streams+=0
          #if total_pkt_drops and total_pkts:
          #      pkt_drops_pct=total_pkt_drops/float(tot_pkts+)
          ### IP, Total memory and Free Memory
@@ -970,46 +974,46 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
                  vital_stats=Data[i]['data_'+j]
            
                  ### Link Util
-                 html+="<td> %s </td>"%vital_stats[0]
+                 html+="<td> %s </td>"%vital_stats['24_hr_util']
                  ### 24 hr PPS
-                 if vital_stats[1]==0.000:
-                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats[1]
+                 if vital_stats['24_hr_pps']==0.000:
+                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats['24_hr_pps']
                                html+="""<td> n/a</td>"""
                  else:
-                               html+="""<td > %s </td>"""%vital_stats[1]
-                               html+="""<td> %s</td>"""%vital_stats[2]
+                               html+="""<td > %s </td>"""%vital_stats['24_hr_pps']
+                               html+="""<td> %s</td>"""%vital_stats['pps_time']
 
                  ### Dropped Packets at PPS             
-                 if int(vital_stats[6]) !=0: 
-                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats[6]
+                 if int(vital_stats['dp_peak_pps']) !=0: 
+                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats['dp_peak_pps']
                                #html+="""<td> %s </td>"""%vital_stats[5]
-                               pkt_drops_pct= round(int(vital_stats[6])/float(vital_stats[8]+int(vital_stats[6])),4)
+                               pkt_drops_pct= round(int(vital_stats['dp_peak_pps'])/float(vital_stats['tot_pkts']+int(vital_stats['dp_peak_pps'])),4)
                                html+="""<td BGCOLOR="red"> %s </td>"""%pkt_drops_pct
                  else :
-                               html+="""<td BGCOLOR="lightgreen"> %s </td>"""%vital_stats[6]
+                               html+="""<td BGCOLOR="lightgreen"> %s </td>"""%vital_stats['dp_peak_pps']
                                #html+="""<td> %n/a </td>"""
                                html+="""<td BGCOLOR="lightgreen"> 0 </td>"""
                  ### Dropped Packets              
-                 if int(vital_stats[4]) !=0: 
-                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats[4]
+                 if int(vital_stats['dp_peak']) !=0: 
+                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats['dp_peak']
                                #html+="""<td> %s </td>"""%vital_stats[5]
          
                  else :
-                               html+="""<td BGCOLOR="lightgreen"> %s </td>"""%vital_stats[4]
+                               html+="""<td BGCOLOR="lightgreen"> %s </td>"""%vital_stats['dp_peak']
                                #html+="""<td> %n/a </td>"""
 
                  ### Last hour PPS              
-                 if vital_stats[3]==0.000:
-                                html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats[3]  
+                 if vital_stats['last_hr_pps']==0.000:
+                                html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats['last_hr_pps']  
                  else:
-                                html+="""<td > %s </td>"""%vital_stats[3]      
+                                html+="""<td > %s </td>"""%vital_stats['last_hr_pps']      
                  
                  
                  #### Active Streams
                  if Voice_IS:
-                     if re.search('[0-9]',str(vital_stats[7])):
-                                    html+="""<td> %s </td>"""%vital_stats[7]  
-                     else:
+                     try:
+                                html+="""<td> %s </td>"""%vital_stats['active_str']  
+                     except:
                                 html+="""<td> null </td>"""                  
                  #### GTP correlation
                  if GTPv2_DATA_Corr:
@@ -1159,26 +1163,31 @@ def get_link_data(PM_ip,Data,is_list,Voice_IS):
              output,err=ssh_command(PM_ip, SQL_output)
              print output
              data_out=output.rstrip().split(";")
-
+            
+             _link={}
+            ## data_if:[ 24 hr Link Util Gbps, 24 hr peak pps (K), PPS time,Last hr peak pps (K),dropped packets, dropped packet time,dropped_packets_at_pps, active streams,total pkts]
+            ##Keys: 24_hr_util, 24_hr_pps, pps_time, last_hr_pps, dp_peak,dp_time, dp_peak_pps, active_str, tot_pkts
              ## Total Packets
-             tot_pkts=int(data_out[1])
+             _link['tot_pkts']=int(data_out[1])
 
-
-             data_out[0]=round(int(data_out[0])/float(1000000),3) ##24 hr Link Util Gbps
-             data_out[1]=round(int(data_out[1])/float(3600000),3) ### 24 hr peak pps (K)
-             data_out[3]=round(int(data_out[3])/float(3600000),3)### Last hr peak pps (K)
+        
+             _link['24_hr_util']=round(int(data_out[0])/float(1000000),3) ##24 hr Link Util Gbps
+             _link['24_hr_pps']=round(int(data_out[1])/float(3600000),3) ### 24 hr peak pps (K)
+             _link['last_hr_pps']=round(int(data_out[3])/float(3600000),3)### Last hr peak pps (K)
+             _link['pps_time']=data_out[2]
+             _link['dp_peak']=data_out[4]
+             _link['dp_time']=data_out[5]
+             _link['dp_peak_pps']=data_out[6]
             ## data_out[6] dropped packets at pps
-             if re.search('[0-9]',data_out[6]):
-                data_out[7]=round(int(data_out[6])/float(3600000),2) ### Active Streams 
+            
+             if Voice_IS:
+                if re.search('[0-9]',data_out[7]):
+                      _link['active_str']=round(int(data_out[7])/float(3600000),2) ### Active Streams 
+                #_link['active_str']='null'
              print data_out
              data_index='data_'+j
-             #if tot_pkts:
-             #   data_out.append(int(data_out[4])*100/float(tot_pkts+int(data_out[4])))
-             #else :
-             #     data_out.append(0)
-             ## data_if:[ 24 hr Link Util Gbps, 24 hr peak pps (K), PPS time,Last hr peak pps (K),dropped packets, dropped packet time,dropped_packets_at_pps, active streams,total pkts]
-             data_out.append(tot_pkts)
-             Link_Data[i].update({data_index:data_out})
+
+             Link_Data[i].update({data_index:_link})
       Data.update(Link_Data)       
 
 
@@ -1295,21 +1304,27 @@ def IS_data_collection (is_output,link_data,IS_col):
          if ip in link_data:
               Total_Interfaces=Total_Interfaces+len(link_data[ip]['IF'])
               for IF in link_data[ip]['IF']:
-                    if  link_data[ip]['data_'+IF][4] != '0':
+                    
+                    ### Total If Dropping Packets
+                    if  link_data[ip]['data_'+IF]['dp_peak'] != '0':
                          Total_If_pkt_drops=Total_If_pkt_drops+1
                          if i[IS_col.index('Hostname')] not in IS_If_Drops:
                              IS_If_Drops.update({i[IS_col.index('Hostname')]:['If-%s'%IF]})
                          elif i[IS_col.index('Hostname')] in IS_If_Drops:
                              IS_If_Drops[i[IS_col.index('Hostname')]].append('If-%s'%IF)
+                    ### Total If dropping tables
                     if re.search('(%s:.*[a-zA-Z]):.*:.*'%IF,i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                          Total_If_table_drops=Total_If_table_drops+1
                     Interface_type=re.findall('if_%s:(.*)'%IF,i[IS_col.index('Interface_Type')])
+
+                    ### Interface type
                     if Interface_type:
                        Interface_type[0]=Interface_type[0].replace('\r','')
                        if Interface_type[0] not in Total_If_interfaces:
                              Total_If_interfaces.update({Interface_type[0]:1})
                        elif Interface_type[0]  in Total_If_interfaces:
                              Total_If_interfaces[Interface_type[0]]+=1
+                    ### Vifn
                     Vifn=re.findall('if_%s:(.*)'%IF,i[IS_col.index('Vifn_mode')])
                     if Vifn:
                        Vifn[0]=Vifn[0].replace('\r','')
@@ -1317,27 +1332,41 @@ def IS_data_collection (is_output,link_data,IS_col):
                              IS_If_vifn_mode[Vifn[0]]=1
                        elif Vifn[0]  in IS_If_vifn_mode:
                              IS_If_vifn_mode[Vifn[0]]+=1
- 
-                    if re.search('[0-9]',str(link_data[ip]['data_'+IF][7])):
+
+                    ####calculating total interfaces with voice traffic
+                    try :
+                       _voice=int(link_data[ip]['data_'+IF]['active_str'])
+                    except :
+                       _voice =0
+                    if _voice > 0:
                           Total_If_voice+=1
-                    if link_data[ip]['data_'+IF][1]==0.000:
+
+                    ### Interface with no traffic 
+                    if link_data[ip]['data_'+IF]['24_hr_pps']==0.000:
                           Total_If_notraffic+=1
+                    #### S1MME
                     if S1MME:
                        if_nas=re.findall('if_%s:([0-9].*)\''%IF,i[IS_col.index('NAS_Deciphering rate %')])
                        if if_nas:
                            nas_value=float(if_nas[0])
                            if nas_value <80.0:
                                Total_If_low_s1nas+=1
+                    #### ASR table drops
                     if re.search('%s:asr_'%IF,i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                             Total_If_asr_tbldrops+=1
+                    #### ASI table drops
                     if re.search('%s:asi_'%IF,i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                            Total_If_asi_tbldrops+=1
+                    #### CDM table drops
                     if re.search('%s:cdm_'%IF,i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                            Total_If_cdm_tbldrops+=1
+                    #### session table drops
                     if re.search('%s:ses_|%s:skt_'%(IF,IF),i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                            Total_If_other_tbldrops+=1
-                           
-                    if link_data[ip]['data_'+IF][1] > 0.000 and link_data[ip]['data_'+IF][3]==0.000:
+                    
+
+                    ### No traffic in last hr
+                    if link_data[ip]['data_'+IF]['24_hr_pps'] > 0.000 and link_data[ip]['data_'+IF]['last_hr_pps']==0.000:
                          if i[IS_col.index('Hostname')] not in IS_If_notraffic_lasthr:
                              IS_If_notraffic_lasthr.update({i[IS_col.index('Hostname')]:['If-%s'%IF]})
                          elif i[IS_col.index('Hostname')] in IS_If_Drops:
