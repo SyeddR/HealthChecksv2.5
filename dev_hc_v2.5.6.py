@@ -109,7 +109,12 @@ Config_Backup   = '/opt/NetScout/rtm/database/config-backup'   ### Default Confi
 Login           = 'netscout'  ###USER LOGIN ***Make sure SSH trusts are already created with this login
 
 
-#### THRESHOLD
+
+### Disk Usage Thresholds for IS and PM** 
+
+Disk_IS_Th='9[1-9]|100' ### Regex for checking disk usage > 90% for / and /metadeta dir in IS.
+Disk_PM_Th='9[1-9]|100' ### Regex for checking disk usage > 90% fo,r /, and /opt in PM
+
 
 
 IS_t=0
@@ -123,8 +128,7 @@ IS_s=[]
 is_output={}
 pm_output={}
 
-#def eprint(*args, **kwargs):
-    #print(*args, file=sys.stderr, **kwargs)
+
 
 
 def main(argv):
@@ -170,7 +174,7 @@ def main(argv):
    'Peak content_memory', 'Peak asiwarehouse_memory', 'Peak asiservicewarehouse_memory', 'Peak webxpresentmemory', 'Peak uccontentmemory',
    'Peak CDM loggermemory', 'Peak CDM flowloggermemory', 'Peak CDM fdsindexingmemory', 'Peak asi2xloggermemory', 'Peak analyticsmemory', 
    'Peak CDM whmemory', 'Peak webxreportgenmemory', 'Peak flowrollupmemory','Peak nssituationmemory','Peak CDM Rows/Flows','Peak ASI Rows','Peak ASI Logging Time (ms)','PM Postgres threads','PM Webservice threads','Number of DB Connections','Process Restart(Today)', 'Process Restart(Yesterday)', 'PM ngenius processes',
-   'IS Timeout (During Past 24 hr)','PM Blackout (During Today)','Config_Backup Last Date','SCSI_err','Paservic Restart']
+   'IS Timeout (During Past 24 hr)','PM Blackout (During Today)','Config_Backup Last Date','SCSI_err','Paservic Restart','nssituation_queue']
    pm = open( pmip , "r")
    pm_input_list= [i.rstrip() for i in pm]
    if len(pm_input_list) < cpus:
@@ -222,7 +226,8 @@ def main(argv):
    'Uptime', 'Load_Average','ESUs', 'HDD', 'Failed HDD', 'Failed HDD Desc','Failing HDD','Foreign HDD', 'FAN Status', 'POWER Status', 'Temperature Status', 'Voltage Status' ,
    'NTP IP','NTP_Strartum Status','NTP Delay(ms)', 'Core_File (Last 48 hrs)','Duplex_Mode', 'Disk_Use(/)','Disk_Use(/metadata)','Disk_Use(/xdr)',
    'XDR Size','Oldest XDR Date','Packet Store Size(GB)','PM Server','Voice Monitoring','Nsprobe Mem','Free_Mem', 'Table_Size_Allocation(ifn-size-ctrl-data)','nsprobe uptime',
-   'IS_Processes','Table_Drops (Yesterday to Current)','Packet Data Retention','Error in /var/log/messages','Dengine gt than 8 hr','Interface_Type','Sip_db','GTPv2_corr','Vifn_mode','TCM Conn shortages']
+   'IS_Processes','Table_Drops (Yesterday to Current)','Packet Data Retention','Error in /var/log/messages','Dengine gt than 8 hr','Interface_Type','Sip_db','GTPv2_corr','Vifn_mode','TCM Conn shortages',
+    'Ifn_XDR_Status']
    
    
    if len(d) < cpus:
@@ -268,7 +273,7 @@ def main(argv):
    'HDD Failing':['^[1-9]',IS_col.index('Failing HDD')],'HDD Foreign':['^[1-9]',IS_col.index('Foreign HDD')],
    'Power Failure':['DEGRADED',IS_col.index('POWER Status')],
    'Temp Failure':['DEGRADED',IS_col.index('Temperature Status')] ,'Voltage Failure':['DEGRADED',IS_col.index('Voltage Status')],'Fan Failure':['DEGRADED',IS_col.index('FAN Status')],
-   'Disk Size(/metadata) >90%':['^9[1-9]|^100',IS_col.index('Disk_Use(/metadata)')],'Disk Size(/xdr) >90%':['^9[1-9]|^100',IS_col.index('Disk_Use(/xdr)')],'Half_Duplex':['Half',IS_col.index('Duplex_Mode')] ,'Disk Size(/) >90%':['^9[1-9]|^100',IS_col.index('Disk_Use(/)')],
+   'Disk Size(/metadata) >90%':[Disk_IS_Th,IS_col.index('Disk_Use(/metadata)')],'Disk Size(/xdr) >90%':['9[1-9]|100',IS_col.index('Disk_Use(/xdr)')],'Half_Duplex':['Half',IS_col.index('Duplex_Mode')] ,'Disk Size(/) >90%':[Disk_IS_Th,IS_col.index('Disk_Use(/)')],
    'Core File(s) -- last 48 hrs':['^[1-9]',IS_col.index('Core_File (Last 48 hrs)')],'Table Drops -- yesterday to current':['^(?!\s*$).+',IS_col.index('Table_Drops (Yesterday to Current)')],
    'IS Process(es) Not Running':['^(?!.*procmana)|^(?!.*tfaengin)|^(?!.*cleanupe)|^(?!.*nsprobe)|^(?!.*paservic)',IS_col.index('IS_Processes')],
    'Partition Missing (/metadata)':['^\s*$',IS_col.index('Disk_Use(/metadata)')],'Partition Missing (/xdr)':['^\s*$',IS_col.index('Disk_Use(/xdr)')], 'NTP Not Running':['^\s*$',IS_col.index('NTP_Strartum Status')],
@@ -296,13 +301,14 @@ def main(argv):
    'Memory Failure ':['f|F|Cr|cr',PM_col.index('Memory Status')],'Power Failure ':['f|F|Cr|cr',PM_col.index('Power Status')],'Temperature Failure ':['f|F|Cr|cr',PM_col.index('Temp Status')],
    'Voltage Failure ':['f|F|Cr|cr',PM_col.index('Voltage Status')],'Batteries Failure ':['f|F|Cr|cr',PM_col.index('Batteries Status')],
    'NTP Error':['16',PM_col.index('NTP_strartum Status')], 'iDrac Not Connected':['No',PM_col.index('iDrac link connected')],'SCSI Errors(/var/log/messages)':['[1-9]',PM_col.index('SCSI_err')],
-   'Disk Size(/opt) >90%':['^9[1-9]|^100',PM_col.index('Disk_Use(/opt)')],'Disk Size(/) >90%':['^9[1-9]|^100',PM_col.index('Disk_Use(/)')],'NTP Not Running':['^\s*$',PM_col.index('NTP_strartum Status')],
+   'Disk Size(/opt) >90%':[Disk_PM_Th,PM_col.index('Disk_Use(/opt)')],'Disk Size(/) >90%':[Disk_PM_Th,PM_col.index('Disk_Use(/)')],'NTP Not Running':['^\s*$',PM_col.index('NTP_strartum Status')],
    'PM Database Not Running':['^(?!.*postgres)',PM_col.index('PM Postgres threads')],' PM Webservice Not Running':['^(?!.*httpd)',PM_col.index('PM Webservice threads')],
    'No. of DB connections > 90':['^9[1-9]|^1[0-9][0-9]',PM_col.index('Number of DB Connections')], 'nG1 Process Restart (Today)':['^(?!\s*$).*',PM_col.index('Process Restart(Today)')],
    'nG1 Process Restart (Yesterday)':['^(?!\s*$).*',PM_col.index('Process Restart(Yesterday)')],'IS Timeout (during past 24 hr)':['^(?!\s*$).*',PM_col.index('IS Timeout (During Past 24 hr)')],
    'PM Blackout (during today)':['^(?!\s*$).*',PM_col.index('PM Blackout (During Today)')],
    'Config Backup Not Generated Today':['^(?!(.*%s|NA))'%date_today,PM_col.index('Config_Backup Last Date')],
-   'Paservice Restart':['^(?!\s*$).*',PM_col.index('Paservic Restart')]}
+   'Paservice Restart':['^(?!\s*$).*',PM_col.index('Paservic Restart')],
+   'Nssituation Queue':['^(?!\s*$).*',PM_col.index('nssituation_queue')]}
    PM_err.update(L2)
    
    PM_err_summ=get_error_summary(PM_err, pm_list_output) 
@@ -522,7 +528,8 @@ def pm_local_ssh (j,d):
             """ sudo -u ngenius -H sh -c "cd /opt/NetScout/rtm/log;grep -i \\"isBlackOut = true\\"  debuglog-$( date --date="today" |awk '{print $1}'|tr '[:upper:]' '[:lower:]').txt |grep WebxRemoteRequestDispatcherService | sed -n 's/.*Server :\\( .*\\)RMI.*/\\1/p'|uniq" """,
             """ sudo -u ngenius -H sh -c "cd /opt/NetScout/rtm/database/config-backup; ls -Art | tail -1|xargs stat| grep Change |sed -n 's/Change:\\(.*-[0-9][0-9]-[0-9][0-9]\\).*/\\1/p'" """,
             """ sudo grep "Sense code: .*" /var/log/messages |wc -l""",
-            """ sudo grep "Request to start paservice received" /opt/NetScout/rtm/log/paservice_$( date --date="today" |awk '{print $1}'|tr '[:upper:]' '[:lower:]').log"""]
+            """ sudo grep "Request to start paservice received" /opt/NetScout/rtm/log/paservice_$( date --date="today" |awk '{print $1}'|tr '[:upper:]' '[:lower:]').log""",
+            """ sudo grep "ASI2xAnalysisSituation.queue" /opt/NetScout/rtm/log/nssituationstatisticslog-$(date --date="yesterday" |awk '{print $1}'|tr '[:upper:]' '[:lower:]').txt | grep -v "queue = 0" """ ]
             
     else : 
       comm= [ """ hostname """,
@@ -581,7 +588,8 @@ def pm_local_ssh (j,d):
             """ echo " " """,
             """ sudo -u ngenius -H sh -c "cd /opt/NetScout/rtm/database/config-backup; ls -Art | tail -1|xargs stat| grep Change |sed -n 's/Change:\\(.*-[0-9][0-9]-[0-9][0-9]\\).*/\\1/p'" """,
             """ sudo grep "Sense code:.*" /var/log/messages |wc -l""" ,
-            """ sudo grep "Request to start paservice received" /opt/NetScout/rtm/log/paservice_$( date --date="today" |awk '{print $1}'|tr '[:upper:]' '[:lower:]').log"""           ]
+            """ sudo grep "Request to start paservice received" /opt/NetScout/rtm/log/paservice_$( date --date="today" |awk '{print $1}'|tr '[:upper:]' '[:lower:]').log""",
+            """ sudo grep "ASI2xAnalysisSituation.queue" /opt/NetScout/rtm/log/nssituationstatisticslog-$(date --date="yesterday" |awk '{print $1}'|tr '[:upper:]' '[:lower:]').txt | grep -v "queue = 0"       """     ]
                   
   
     command =''
@@ -653,7 +661,7 @@ def IS_ssh (j,link_data):
     comm= [ """ hostname """,
      """ cat /etc/sysconfig/network-scripts/ifcfg-eth0|grep -i ipaddr |cut -d= -f2 """,
      """ date """,
-     """ sudo hwclock """,
+     """ sudo sh -c hwclock """,
      """ sudo ipmitool lan print |grep -i "IP Address"| tail -1| cut -d: -f2 """,
      """ pkill -9 localconsole;echo -e "11\\nget agent\\nexit\\n"| sudo /opt/NetScout/rtm/bin/localconsole| grep model_number|awk '{print $3}' """,
      """  echo -e "11\\nget agent\\nexit\\n"| sudo /opt/NetScout/rtm/bin/localconsole| grep software_version| awk '{print $2,$3,$4,$5}' """,
@@ -668,7 +676,7 @@ def IS_ssh (j,link_data):
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*"| tail -n 2 | head -n 1 |xargs cat|grep Disk| sort|uniq|wc -l """,
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*"| tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -e "FAILED" -e "AVAILABLE" -e "MISSING" |sort| uniq |wc -l """,
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*" | tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -e "FAILED" -e "AVAILABLE" -e "MISSING" |sort| uniq|grep -o -e " Infin.* Disk" -e " ESU.* Disk"|awk '{print $1,$3,$4}' |awk {print} ORS=" ," """,
-     """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*"| tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -i "FAILING"|sort| uniq |wc -l """,    
+     """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*"| tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -i -e "FAILING" -e "ECC"|sort| uniq |wc -l """,    
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*" | tail -n 2 | head -n 1 |xargs cat|grep Disk|grep -i "FOREIGN"|sort| uniq |wc -l """,
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*" | tail -n 2 | head -n 1 |xargs cat|grep "FAN STATUS"|sort|uniq|head -n 1| awk '{print$7}' """,
      """ sudo sh -c "ls -Art /opt/platform/nshwmon/log/nshwmon-logfiles/nshwmon*" | tail -n 2 | head -n 1 |xargs cat|grep "POWER SUPPLY STATUS"|sort|uniq|head -n 1| awk '{print$9}' """,
@@ -696,7 +704,7 @@ def IS_ssh (j,link_data):
     ### For packet retention
     comm.append(""" sudo /opt/NetScout/rtm/tools/printstore -pkt|head -20| sed -n 7,20p |grep  m*Time""" )
     ### For Erros in /var/log messages "USB, XDR, SATA"
-    comm.append(""" sudo grep -e "couldn't allocate port*usb_device" -e "XFS_WANT_CORRUPTED" -e "SATA" /var/log/messages|uniq""" )
+    comm.append(""" sudo grep -e "couldn't allocate port*usb_device" -e "XFS_WANT_CORRUPTED" -e "SATA" /var/log/messages|uniq|grep -v "TTY" """ )
     ### Dengine greater than 8 hour
     comm.append(""" sudo ps -eo pid,etime,comm | awk '{if($2~/-.*:.*:/ || $2~/0?[8-9]:.*:.*/ || $2~/[1-2][0-9]:.*:.*/) print $2,$3}'|grep dengine """)
     If_comm=''
@@ -704,25 +712,31 @@ def IS_ssh (j,link_data):
     gtp_corr_comm=''
     vifn_mode_comm=''
     Tcm_conn_comm=''
+    If_xdr=''
     if j in link_data:
        for interface in link_data[j]['IF']:
              sip= """ echo "if_%s:"|tr '\\n' ' '; echo -e "11\\n get dump mobile_tables %s\\nexit\\n"|sudo /opt/NetScout/rtm/bin/localconsole|grep -o ses_sip_db.*|awk '{print $ 3,$5,$6,$10}' OFS=',';"""%(interface,interface)
-             If= """ echo "if_%s"|tr '\\n' ':';echo -e  "11\\nset curr_interface %s\\nget interface_options %s\\nexit\\n" | sudo /opt/NetScout/rtm/bin/localconsole|grep -i "interface type"|awk '{print $4}';"""%(interface,interface,interface)
+             If_type= """ echo "if_%s"|tr '\\n' ':';echo -e  "11\\nset curr_interface %s\\nget interface_options %s\\nexit\\n" | sudo /opt/NetScout/rtm/bin/localconsole|grep -i "interface type"|awk '{print $4}';"""%(interface,interface,interface)
              gtp_corr=""" echo "if_%s"|tr '\\n' ':';echo -e  "11\\nget dump scn %s \\nexit\\n" | sudo /opt/NetScout/rtm/bin/localconsole|grep -i "TOT_NON_CORRELATED_DATA_PKTS:"|grep -o GTPv2.*|awk '{print $5}';echo -e "\\n" ;"""%(interface,interface)
              vifn_mode= """ echo "if_%s"|tr '\\n' ':';echo -e  "11\\nset curr_interface %s\\nget interface_options %s\\nexit\\n" | sudo /opt/NetScout/rtm/bin/localconsole|grep -i "vifn_mode"|awk '{print $3}';"""%(interface,interface,interface)
              Tcm_conn= """echo "if_%s"|tr '\\n' ':';echo -e "11\\nget dump tcm %s\\nexit\\n"|sudo /opt/NetScout/rtm/bin/localconsole|grep "TCM connection shortage"|awk '{print $4}';"""%(interface,interface)
-             If_comm+=If
+             If_xdr= """ echo "if_%s"|tr '\\n' ':';echo -e  "11\\nset curr_interface %s\\nget interface_options %s\\nexit\\n" | sudo /opt/NetScout/rtm/bin/localconsole|grep -i "enable XDR"|awk '{print $4}';"""%(interface,interface,interface)
+             
+             If_comm+=If_type
              sip_comm+=sip
              gtp_corr_comm+=gtp_corr
              vifn_mode_comm+=vifn_mode
              Tcm_conn_comm+=Tcm_conn
+             If_xdr_comm+=If_xdr
 
        comm.append(If_comm[:-1])  
        comm.append(sip_comm[:-1])
        comm.append(gtp_corr_comm[:-1])
        comm.append(vifn_mode_comm[:-1])
        comm.append(Tcm_conn_comm[:-1])
+       comm.append(If_xdr_comm[:-1])
     else:
+       comm.append(""" echo NA """)
        comm.append(""" echo NA """)
        comm.append(""" echo NA """)
        comm.append(""" echo NA """)
@@ -853,7 +867,7 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
 
    html+= """ <table border="2" style="width:70%"> """
    html+=""" <tr> <th>Probe IP</th><th>Server IP</th><th>Model</th><th>Software Version</th><th>CPUs</th><th>Total Physical Memory (GB)</th> <th>nsprobe Memory (MB)\
-     </th><th>Free Memory (Bytes)</th><th>Interface</th><th>Interface_type</th><th>Vifn_mode</th><th>Last 24 hr Peak Link Utilization (Gbps) </th><th>Last 24 hr Peak PPS(K) </th> \
+     </th><th>Free Memory (Bytes)</th><th>Interface</th><th>Interface_type</th><th>Vifn_mode</th><th>XDR Status</th><th>Last 24 hr Peak Link Utilization (Gbps) </th><th>Last 24 hr Peak PPS(K) </th> \
      <th>Peak_PPS_Time (last 24 hr)</th><th> Dropped Packets at peak PPS </th><th> Peak Packet Drops % (1 hr res) </th></th><th> Peak Dropped Packets (in last 24 hr)</th><th>Last hour PPS (K)</th> """
    if Voice_IS:
      html+= """<th>Peak Active-Streams (K)</th>"""
@@ -891,6 +905,7 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
          sip_db_out=is_output[i][IS_col.index('Sip_db')]
          gtp_corr=is_output[i][IS_col.index('GTPv2_corr')]
          vifn_mode=is_output[i][IS_col.index('Vifn_mode')]
+         xdr =is_output[i][IS_col.index('Ifn_XDR_Status')
          if S1MME:
            s1_nas=is_output[i][IS_col.index('NAS_Deciphering rate %')]
       #else:
@@ -907,8 +922,9 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
       #   model="NA"
       #   #sip_db_out="NA"
       #   gtp_corr="NA"
-         
-      #####  Total sip_db Max_session per box
+       ##Keys: 24_hr_util, 24_hr_pps, pps_time, last_hr_pps, dp_peak,dp_time, dp_peak_pps, active_str, tot_pkts  
+      
+       #####  Total sip_db Max_session per box
          if sip_db_out != 'NA':
             sess=re.findall('if_.*:(.*),.*,.*,.*',sip_db_out)
             total_sess=0
@@ -926,12 +942,15 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
          for dt in Data[i]['IF']:
              
                  link_data=Data[i]['data_'+dt]
-                 total_pps+=link_data[1]
-                 total_pkt_drops+=int(link_data[4])
-                 total_pkts+=(link_data[7])
+                 total_pps+=link_data['24_hr_pps']
+                 total_pkt_drops+=int(link_data['dp_peak'])
+                 total_pkts+=(link_data['tot_pkts'])
                  if Voice_IS:
-                     if re.search('[0-9]',str(link_data[6])):
-                        total_streams+=float(link_data[6])
+                     #if re.search('[0-9]',str(link_data['active_str'])):
+                    try:
+                        total_streams+=float(link_data['active_str'])
+                    except KeyError:
+                        total_streams+=0
          #if total_pkt_drops and total_pkts:
          #      pkt_drops_pct=total_pkt_drops/float(tot_pkts+)
          ### IP, Total memory and Free Memory
@@ -951,6 +970,7 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
                  if_table_drops_list=re.findall('(%s:.*[a-zA-Z]):.*:.*'%j,table_drops)
                  if_type=re.findall('if_%s:(.*)'%j,Interface_type)
                  if_vifn_mode=re.findall('if_%s:(.*)'%j,vifn_mode)
+                 if_xdr_status=re.findall('if_%s:(.*)'%j,xdr)
                  if_table_size=''
                  if_table_drops=''
                  
@@ -968,55 +988,59 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
                     html+="<td> %s </td>"%if_vifn_mode[0]
                  elif vifn_mode =="NA":
                     html+="<td> NA </td>"
+                 if xdr !="NA":
+                    html+="<td> %s </td>"%if_xdr_status[0]
+                 elif xdr =="NA":
+                    html+="<td> NA </td>"
                  #b=0
                  #### PPS and Link Utilization data per IF
                  vital_stats=Data[i]['data_'+j]
            
                  ### Link Util
-                 html+="<td> %s </td>"%vital_stats[0]
+                 html+="<td> %s </td>"%vital_stats['24_hr_util']
                  ### 24 hr PPS
-                 if vital_stats[1]==0.000:
-                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats[1]
+                 if vital_stats['24_hr_pps']==0.000:
+                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats['24_hr_pps']
                                html+="""<td> n/a</td>"""
                  else:
-                               html+="""<td > %s </td>"""%vital_stats[1]
-                               html+="""<td> %s</td>"""%vital_stats[2]
+                               html+="""<td > %s </td>"""%vital_stats['24_hr_pps']
+                               html+="""<td> %s</td>"""%vital_stats['pps_time']
 
                  ### Dropped Packets at PPS             
-                 if int(vital_stats[6]) !=0: 
-                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats[6]
+                 if int(vital_stats['dp_peak_pps']) !=0: 
+                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats['dp_peak_pps']
                                #html+="""<td> %s </td>"""%vital_stats[5]
-                               pkt_drops_pct= round(int(vital_stats[6])/float(vital_stats[8]+int(vital_stats[6])),4)
+                               pkt_drops_pct= round(int(vital_stats['dp_peak_pps'])/float(vital_stats['tot_pkts']+int(vital_stats['dp_peak_pps'])),4)
                                html+="""<td BGCOLOR="red"> %s </td>"""%pkt_drops_pct
                  else :
-                               html+="""<td BGCOLOR="lightgreen"> %s </td>"""%vital_stats[6]
+                               html+="""<td BGCOLOR="lightgreen"> %s </td>"""%vital_stats['dp_peak_pps']
                                #html+="""<td> %n/a </td>"""
                                html+="""<td BGCOLOR="lightgreen"> 0 </td>"""
                  ### Dropped Packets              
-                 if int(vital_stats[4]) !=0: 
-                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats[4]
+                 if int(vital_stats['dp_peak']) !=0: 
+                               html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats['dp_peak']
                                #html+="""<td> %s </td>"""%vital_stats[5]
          
                  else :
-                               html+="""<td BGCOLOR="lightgreen"> %s </td>"""%vital_stats[4]
+                               html+="""<td BGCOLOR="lightgreen"> %s </td>"""%vital_stats['dp_peak']
                                #html+="""<td> %n/a </td>"""
 
                  ### Last hour PPS              
-                 if vital_stats[3]==0.000:
-                                html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats[3]  
+                 if vital_stats['last_hr_pps']==0.000:
+                                html+="""<td BGCOLOR="red"> %s </td>"""%vital_stats['last_hr_pps']  
                  else:
-                                html+="""<td > %s </td>"""%vital_stats[3]      
+                                html+="""<td > %s </td>"""%vital_stats['last_hr_pps']      
                  
                  
                  #### Active Streams
                  if Voice_IS:
-                     if re.search('[0-9]',str(vital_stats[7])):
-                                    html+="""<td> %s </td>"""%vital_stats[7]  
-                     else:
+                     try:
+                                html+="""<td> %s </td>"""%vital_stats['active_str']  
+                     except:
                                 html+="""<td> null </td>"""                  
                  #### GTP correlation
                  if GTPv2_DATA_Corr:
-                     if gtp_corr != 'NA' or None:
+                     #if gtp_corr != 'NA' or None:
                         try:
                           gtpv2_data_corr=re.findall('if_%s:((?:.*))'%j,gtp_corr)[0]
                         except:
@@ -1026,8 +1050,8 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
                         else:
                            html+="""<td> NA </td>"""
                        
-                     else:
-                        html+="""<td> NA </td>""" 
+                     #else:
+                        #html+="""<td> NA </td>""" 
                  #### Table_size_allocation cell
                  if if_table_size_list:
                     for l in if_table_size_list:
@@ -1149,39 +1173,56 @@ def get_link_data(PM_ip,Data,is_list,Voice_IS):
              SQL_comm+=""" echo "SELECT a.appid,a.targettime,a.pps,a.util,b.lh_pps FROM( SELECT appid,targettime, (vitalstats_packetsout+vitalstats_packetsin) as PPS,((vitalstats_octetsout+vitalstats_octetsin)/450000)as UTIL FROM hourly_vitalstats_%s_%s WHERE appid=184549377 ) a JOIN (SELECT appid,(vitalstats_packetsout+vitalstats_packetsin)as lh_pps FROM hourly_vitalstats_%s_%s WHERE appid=184549377 ORDER BY targettime DESC LIMIT 1 )b on a.appid=b.appid ORDER BY pps DESC LIMIT 1;" |sudo tee %s/input_pps_lu;"""%(ip,j,ip,j,DIR)
              SQL_comm+="""  echo "SELECT appid,targettime, (vitalstats_packetsout+vitalstats_packetsin)as Dp FROM hourly_vitalstats_%s_%s WHERE appid=184549384 ORDER BY Dp DESC LIMIT 1;" |sudo tee %s/input_dp;"""%(ip,j,DIR)
              SQL_comm+="""  echo "SELECT a.appid,a.targettime, a.Dp,b.pps FROM (  SELECT appid,targettime, (vitalstats_packetsout+vitalstats_packetsin) as Dp FROM hourly_vitalstats_%s_%s WHERE appid=184549384) a JOIN (SELECT appid,targettime,(vitalstats_packetsout+vitalstats_packetsin) as PPS FROM hourly_vitalstats_%s_%s WHERE appid=184549377) b on a.targettime=b.targettime order by b.pps DESC LIMIT 1;" |sudo tee %s/input_dp_peak_pps;"""%(ip,j,ip,j,DIR)
-             SQL_comm+=""" sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_pps_lu %s/out_pps_lu_%s_%s; sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_dp %s/out_dp_%s_%s; sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_dp_peak_pps %s/out_dp_pps_%s_%s;"""%(DIR,DIR,ip,j,DIR,DIR,ip,j,DIR,DIR,ip,j)
+             ####CRC error
+             SQL_comm="""SELECT appid,(vitalstats_packetsout+vitalstats_packetsin)as lh_crc_pps FROM hourly_vitalstats_%s_%s WHERE appid=184549378 ORDER BY targettime DESC LIMIT 1| sudo tee %s/input_crc_pps;"""%(ip,j,DIR)
+
+             SQL_comm+=""" sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_pps_lu %s/out_pps_lu_%s_%s;\
+                      sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_dp %s/out_dp_%s_%s;\
+                      sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_dp_peak_pps %s/out_dp_pps_%s_%s;\
+                      sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_crc_pps %s/out_crc_%s_%s;"""%(DIR,DIR,ip,j,DIR,DIR,ip,j,DIR,DIR,ip,j,DIR,ip,j)
+             
              if Voice_IS:
                 SQL_comm+="""  echo "SELECT MAX(sum)  FROM (SELECT sum(activestreamsin) FROM hourly_uc_kpi_%s_%s GROUP BY targettime) AS foo" |sudo tee %s/input_uckpi;"""%(ip,j,DIR)
                 SQL_comm+=""" sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_uckpi %s/out_uckpi_%s_%s """%(DIR,DIR,ip,j)
              else: 
                 SQL_comm+=""" echo "None" |sudo tee %s/out_uckpi_%s_%s """%(DIR,ip,j)
-             SQL_output="""  grep 184549377 %s/out_pps_lu_%s_%s|awk -F, '{print $4,$3,$2,$5}' OFS=";"|tr "\n" ";";grep 184549384 %s/out_dp_%s_%s| awk -F, '{print $3,$2}' OFS=";"|tr "\n" ";";grep 184549384 %s/out_dp_pps_%s_%s| awk -F, '{print $3}' OFS=";"|tr "\n" ";";if [ -f %s/out_uckpi_%s_%s ]; then tail -1  %s/out_uckpi_%s_%s;fi """%(DIR,ip,j,DIR,ip,j,DIR,ip,j,DIR,ip,j,DIR,ip,j)
+             SQL_output="""  grep 184549377 %s/out_pps_lu_%s_%s|awk -F, '{print $4,$3,$2,$5}' OFS=";"|tr "\n" ";";\
+                          grep 184549384 %s/out_dp_%s_%s| awk -F, '{print $3,$2}' OFS=";"|tr "\n" ";";\
+                          grep 184549384 %s/out_dp_pps_%s_%s| awk -F, '{print $3}' OFS=";"|tr "\n" ";";\
+                          grep 184549378 %s/out_crc_%s_%s| awk -F, '{print $2}' OFS=";"|tr "\n" ";"\
+                          if [ -f %s/out_uckpi_%s_%s ]; then tail -1  %s/out_uckpi_%s_%s;fi """%(DIR,ip,j,DIR,ip,j,DIR,ip,j,DIR,ip,j,DIR,ip,j,DIR,ip,j)
            
              out_p1,err1=ssh_command(PM_ip, SQL_comm)
              print out_p1
              output,err=ssh_command(PM_ip, SQL_output)
              print output
              data_out=output.rstrip().split(";")
-
+            
+             _link={}
+            ## data_if:[ 24 hr Link Util Gbps, 24 hr peak pps (K), PPS time,Last hr peak pps (K),dropped packets, dropped packet time,dropped_packets_at_pps, active streams,total pkts]
+            ##Keys: 24_hr_util, 24_hr_pps, pps_time, last_hr_pps, dp_peak,dp_time, dp_peak_pps, active_str, tot_pkts
              ## Total Packets
-             tot_pkts=int(data_out[1])
+             _link['tot_pkts']=int(data_out[1])
 
-
-             data_out[0]=round(int(data_out[0])/float(1000000),3) ##24 hr Link Util Gbps
-             data_out[1]=round(int(data_out[1])/float(3600000),3) ### 24 hr peak pps (K)
-             data_out[3]=round(int(data_out[3])/float(3600000),3)### Last hr peak pps (K)
+        
+             _link['24_hr_util']=round(int(data_out[0])/float(1000000),3) ##24 hr Link Util Gbps
+             _link['24_hr_pps']=round(int(data_out[1])/float(3600000),3) ### 24 hr peak pps (K)
+             _link['last_hr_pps']=round(int(data_out[3])/float(3600000),3)### Last hr peak pps (K)
+             _link['pps_time']=data_out[2]
+             _link['dp_peak']=data_out[4]
+             _link['dp_time']=data_out[5]
+             _link['dp_peak_pps']=data_out[6]
+             _link['crc']=data_out[7]
             ## data_out[6] dropped packets at pps
-             if re.search('[0-9]',data_out[6]):
-                data_out[7]=round(int(data_out[6])/float(3600000),2) ### Active Streams 
+            
+             if Voice_IS:
+                if re.search('[0-9]',data_out[8]):
+                      _link['active_str']=round(int(data_out[8])/float(3600000),2) ### Active Streams 
+                #_link['active_str']='null'
              print data_out
              data_index='data_'+j
-             #if tot_pkts:
-             #   data_out.append(int(data_out[4])*100/float(tot_pkts+int(data_out[4])))
-             #else :
-             #     data_out.append(0)
-             ## data_if:[ 24 hr Link Util Gbps, 24 hr peak pps (K), PPS time,Last hr peak pps (K),dropped packets, dropped packet time,dropped_packets_at_pps, active streams,total pkts]
-             data_out.append(tot_pkts)
-             Link_Data[i].update({data_index:data_out})
+
+             Link_Data[i].update({data_index:_link})
       Data.update(Link_Data)       
 
 
@@ -1256,6 +1297,9 @@ def IS_data_collection (is_output,link_data,IS_col):
      IS_If_notraffic_lasthr={}
      IS_data_retention={}
      IS_If_vifn_mode={}
+     Total_If_crc_err=0
+     IS_If_CRCs={}
+     
 
 #### IS Summary   
        
@@ -1298,21 +1342,27 @@ def IS_data_collection (is_output,link_data,IS_col):
          if ip in link_data:
               Total_Interfaces=Total_Interfaces+len(link_data[ip]['IF'])
               for IF in link_data[ip]['IF']:
-                    if  link_data[ip]['data_'+IF][4] != '0':
+                    
+                    ### Total If Dropping Packets
+                    if  link_data[ip]['data_'+IF]['dp_peak'] != '0':
                          Total_If_pkt_drops=Total_If_pkt_drops+1
                          if i[IS_col.index('Hostname')] not in IS_If_Drops:
                              IS_If_Drops.update({i[IS_col.index('Hostname')]:['If-%s'%IF]})
                          elif i[IS_col.index('Hostname')] in IS_If_Drops:
                              IS_If_Drops[i[IS_col.index('Hostname')]].append('If-%s'%IF)
+                    ### Total If dropping tables
                     if re.search('(%s:.*[a-zA-Z]):.*:.*'%IF,i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                          Total_If_table_drops=Total_If_table_drops+1
                     Interface_type=re.findall('if_%s:(.*)'%IF,i[IS_col.index('Interface_Type')])
+
+                    ### Interface type
                     if Interface_type:
                        Interface_type[0]=Interface_type[0].replace('\r','')
                        if Interface_type[0] not in Total_If_interfaces:
                              Total_If_interfaces.update({Interface_type[0]:1})
                        elif Interface_type[0]  in Total_If_interfaces:
                              Total_If_interfaces[Interface_type[0]]+=1
+                    ### Vifn
                     Vifn=re.findall('if_%s:(.*)'%IF,i[IS_col.index('Vifn_mode')])
                     if Vifn:
                        Vifn[0]=Vifn[0].replace('\r','')
@@ -1320,32 +1370,53 @@ def IS_data_collection (is_output,link_data,IS_col):
                              IS_If_vifn_mode[Vifn[0]]=1
                        elif Vifn[0]  in IS_If_vifn_mode:
                              IS_If_vifn_mode[Vifn[0]]+=1
- 
-                    if re.search('[0-9]',str(link_data[ip]['data_'+IF][7])):
+
+                    ####calculating total interfaces with voice traffic
+                    try :
+                       _voice=int(link_data[ip]['data_'+IF]['active_str'])
+                    except :
+                       _voice =0
+                    if _voice > 0:
                           Total_If_voice+=1
-                    if link_data[ip]['data_'+IF][1]==0.000:
+
+                    ### Interface with no traffic 
+                    if link_data[ip]['data_'+IF]['24_hr_pps']==0.000:
                           Total_If_notraffic+=1
+                    #### S1MME
                     if S1MME:
                        if_nas=re.findall('if_%s:([0-9].*)\''%IF,i[IS_col.index('NAS_Deciphering rate %')])
                        if if_nas:
                            nas_value=float(if_nas[0])
                            if nas_value <80.0:
                                Total_If_low_s1nas+=1
+                    #### ASR table drops
                     if re.search('%s:asr_'%IF,i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                             Total_If_asr_tbldrops+=1
+                    #### ASI table drops
                     if re.search('%s:asi_'%IF,i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                            Total_If_asi_tbldrops+=1
+                    #### CDM table drops
                     if re.search('%s:cdm_'%IF,i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                            Total_If_cdm_tbldrops+=1
+                    #### session table drops
                     if re.search('%s:ses_|%s:skt_'%(IF,IF),i[IS_col.index('Table_Drops (Yesterday to Current)')]):
                            Total_If_other_tbldrops+=1
-                           
-                    if link_data[ip]['data_'+IF][1] > 0.000 and link_data[ip]['data_'+IF][3]==0.000:
+                    
+
+                    ### No traffic in last hr
+                    if link_data[ip]['data_'+IF]['24_hr_pps'] > 0.000 and link_data[ip]['data_'+IF]['last_hr_pps']==0.000:
                          if i[IS_col.index('Hostname')] not in IS_If_notraffic_lasthr:
                              IS_If_notraffic_lasthr.update({i[IS_col.index('Hostname')]:['If-%s'%IF]})
                          elif i[IS_col.index('Hostname')] in IS_If_Drops:
                              IS_If_notraffic_lasthr[i[IS_col.index('Hostname')]].append('If-%s'%IF)
-     #
+
+                    ### CRC Error
+                    Total_If_crc_err=Total_If_crc_err+1
+                         if i[IS_col.index('Hostname')] not in IS_If_CRCs:
+                             IS_If_CRCs.update({i[IS_col.index('Hostname')]:['If-%s'%IF]})
+                         elif i[IS_col.index('Hostname')] in IS_If_CRCs:
+                             IS_If_CRCs[i[IS_col.index('Hostname')]].append('If-%s'%IF)
+     
                  
      return {
          
@@ -1371,7 +1442,9 @@ def IS_data_collection (is_output,link_data,IS_col):
               'Total_If_other_tbldrops':Total_If_other_tbldrops,
               'IS_If_Drops':IS_If_Drops,
               'IS_If_vifn_mode':IS_If_vifn_mode,
-              'IS_If_notraffic_lasthr':IS_If_notraffic_lasthr
+              'IS_If_notraffic_lasthr':IS_If_notraffic_lasthr,
+              'Total_If_crc_err':Total_If_crc_err,
+              'IS_If_CRCs':IS_If_CRCs
               }
               
               
@@ -1636,7 +1709,16 @@ def email_html(IS_collec,IS_err_summ, PM_collec, PM_err_summ,ln_status):
             for j,k  in sorted(IS_collec['IS_If_Drops'].items()):
                 
                    html_v+="<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%s : %s</div>\n "%(j,str(k).strip('[]').replace('\'',''))     
-            html+=html_v           
+            html+=html_v          
+          ### Total Interfaces CRC error
+         if IS_collec['Total_If_crc_err'] :
+            html+=" <div>Total IS interfaces with CRC errors (last hr ): %s </div>\n" %IS_collec['Total_If_crc_err']       
+            html+=" <div>IS and Interfaces with CRC errors (last hr ): </div>\n"
+            html_v=''
+            for j,k  in sorted(IS_collec['IS_If_CRCs'].items()):
+                
+                   html_v+="<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%s : %s</div>\n "%(j,str(k).strip('[]').replace('\'',''))     
+            html+=html_v  
           ### Total Interfaces table drops
          html+=" <div>Total IS interfaces Dropping tables (yest to curr): %s </div>\n" %IS_collec['Total_If_table_drops'] 
          
