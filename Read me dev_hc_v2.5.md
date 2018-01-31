@@ -21,6 +21,22 @@ Inputs:-
 
 -Email subject should be entered as needed.
 
+version 2.5.6:-
+Date:- 01/31/2018
+
+  -- Added CRC error for interfaces (suggested by Patrcia)
+
+  -- Added nshwmon queue checks (suggested by Patrcia)
+
+  -- Added ECC error on nshwmon (suggested by Patrcia)
+
+  -- Added global variable for PM and IS disk thresholds (suggested by Patrcia)
+
+  -- Added xdr info (suggested by Raj)
+
+  -- Corrected Vifn  and Active streams calculations 
+
+
 version 2.5.4:-
 Date:- 11/30/2017
   
