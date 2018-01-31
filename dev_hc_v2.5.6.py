@@ -1,67 +1,8 @@
 #! /usr/bin/python
-### --Version 2.5
-### NETSCOUT IS and PM Device Health check script prepared by Syed Rehman(last updated 12/01/15)
-### Included date,hwclock,uptime,load_average and serial number on IS data (01/20/16)
-### Included Multithreading module to trigger parallel SSH commands to PMs and IS boxes (02/04/16)
-### Included several other metrics for IS and PM. For complete List see IS_col and PM_col (02/16/16)
-### Added IS_error_summary and PM_error_summary output and email body  (02/20/16)
-### Added following Infinistreams metrics:- 'IS_Processes' ,'Disk_available(/metadata)' (03/17/16)
-### Added following PM metrics:-  'upitme', 'OS version', 'Disk_available(/)','PM Postgres threads','PM Webservice threads','PM ngenius processes' (03/17/16)           
-### Added Infinistream Processes check and PM Database, Webservice and Diskavailable checks on error summaries (03/18/16)
-### Corrected bug around Disk Size check (03/18/16)
-### Fixed the missing data around  Peak PM process memories column (03/18/16) 
-### Inserted space between table drop entries to make them better visible (03/19/16)    
-### Script gets hung while generating nshwmon script on some of 8995Ds . Script now has been modified to use nshwmon logs instead of generating it. 
-### Table drops in IS have been modified to show only the more recent drops i.e. from yesterday to current. (03/25/16)
-### As a result script is now much faster than before.(03/23/16)
-### Core File metric in IS has been modified to show core files generated within last 48 hrs.(03/25/16)   
-### included number of rows against each table in error summary. (03/25/16)
-### Script has been modified to support IPv6 PMs and IS  (03/27/16)
-### Few PM HW status metrics added from 'omreport chassis command'(03/27/16)
-### Fan Status',	'Memory Status','Power Status','Temp Status','Voltage Status','Batteries Status'
-### 'Failed HDD' has be on PM report (03/27/16)
-### Fixed the bug around PM memory showing mulitple values, causing error summary to miss the errors (04/14/16)
-### Change Disk_available description to Disk_Size on IS (04/14/16)
-### Added IS interfaces Link status report in html using hourly_vital_stats table in Local PMs(05/12/16)
-### Added DB connection status in PM report and checking it on error function if its greater than 90(05/10/16)
-### Added version information on email body (suggested by Brandon) (05/10/16)
-### Changed the column name:Disk_available(/opt) to Disk_Use(/opt) on PM reports. (05/12/16)
-### PM peak memory utilizion to report the latest data instead of yesterday(05/12/16)
-### Added /xdr Disk usage in IS report (05/15/16)
-### Added Partition check on IS '/', '/metadata' and '/xdr partitions' (05/15/16)
-### Full Reports and error summary data are now sorted based on IPs (05/15/16)
-### Date information has been added on error summaries (05/15/16)
-### Fixed bug in v1.5, reported around list assignment when number of PMs are lesser than cpu threads. (05/16/16)
-### Inluded IPv6 support for link function(05/17/16)
-### Included IS count in Link report (05/19/16)
-### Included Sip_db_sessions in link report (05/19/16)
-### Included Sip_db_sessions in link report (05/19/16)
-### Added ssh timeout function to report IS or PM (that are pingable) but couldnt ssh, timeout value is 60s.(06/12/16)
-### Added NTP not running error check in error report (06/30/16)
-### Added "Missing" HDD detection (suggested by David, Ang)(07/15/16)
-### Added PM Restart detection in full report and error check  (07/15/16)
-### Added Peak ASI rows and ASI logging time column for PMs (08/03/16)
-### Added IS interface type in link report (08 /08/16)
-### Added CDM count and changed NTP ouput separator(Taral)(08 /08/16)
-### Added XDR Size, Oldest XDR date and Packet Store Size columns in IS csv report (08 /08/16)
-### Added Peak PPS Time in IS_link html Report(09/26/16)
-### Added nsprobe memory in IS_link html Report(10/20/16)
-### IS_link Report should not show IS that are not IS file(10/20/16)
-### Included Infinistream timeout during past 24 hour in PM Report(10/25/16)
-### Included PM Blackout During Today(10/25/16)
-### Included PM config backup check (10/26/16)
-### Included Peak Active streams metric in IS_link Report (10/26/16)
-### Fixed  the broken IS_link Report for 5.5.2 environment  (10/26/16)
-### Added GTPv2 correlation stats (12/19/16)
-### Aggregated several metrics and added Health check summary on email body
-### Added S1 nas deciphering rate for s1 interfaces (suggested by Rafi and Surya)
-### Merged PM and IS error files into one file
-### Changed IS_link_table_status file name to IS_Interface_Stats.html
-### Added SCSI error checks on PM devices (suggested by Patricia)
-### Added Interface types in IS_Healthcheck data (suggested by Norm)
-### Added Voice monitotring, ASI mode in IS_Healthcheck 
-### Deprecated error checks on 200 days for IS as the issue has been resolved in 5.5.
-### Added localconsole inaccessible and nshwmon log error checks for IS.
+### --Version 2.5.6
+### NETSCOUT nGONE and Infinisteam Devices Health check script prepared by Syed Rehman(last updated 12/01/15)
+
+### Last Updated :01/31/2018
 
 ##########################################################################################################################################
  
@@ -83,39 +24,38 @@ import datetime
 import signal
 import copy
 
+##################################SCRIPT VARIABLES############################################################################################
+
+### ***Please change below settings as required
 
 SCRIPT_DIR='/opt/vzw_scripts/Health-checks/v2.5' ### Directory for script *****Make sure full dir path has user login permissions
 DIR = SCRIPT_DIR+'/Results'  ### Directory for Healthcheck outputs
 
-
-
-### Create if Results dir  not exists
-if not os.path.exists(DIR):
-  try:
-     os.makedirs(DIR)
-  except IOError:
-     sys.exit( 'Unable to acess ' + SCRIPT_DIR )
-
-Version ='2.5'
+Version ='2.5.6'
 From = "nGenius@netscout.com"
 To = ['syed.rehman@netscout.com','syed.rehman@verizonwireless.com']
 Deployment='NE'
 SMTP_IP='10.194.80.114' ### SMTP IP for sending emails
 S1MME           = True    ### True if deployment is monitoring s1mme interfaces (only for Wireless Service Provider EPC monitoring) else False.
 GTPv2_DATA_Corr = True    ### True if monitoring data plane (for e.g. S1U/S5U) with control plane (S11/S5).
-Voice_IS        = True    ### True if deployment has voice monitoring enabled on any IS else False.
+Voice_IS        = False    ### True if deployment has voice monitoring enabled on any IS else False.
 Ping_Disable    = False   ### True if Network has ICMP blocked. The script wont check Ping status if set to True, otherwise keep it False 
 Config_Backup   = '/opt/NetScout/rtm/database/config-backup'   ### Default Config backup dir, please change if it is different.
 Login           = 'netscout'  ###USER LOGIN ***Make sure SSH trusts are already created with this login
 
-
-
 ### Disk Usage Thresholds for IS and PM** 
-
 Disk_IS_Th='9[1-9]|100' ### Regex for checking disk usage > 90% for / and /metadeta dir in IS.
-Disk_PM_Th='9[1-9]|100' ### Regex for checking disk usage > 90% fo,r /, and /opt in PM
+Disk_PM_Th='9[1-9]|100' ### Regex for checking disk usage > 90% for /, and /opt dir in PM
 
 
+#######################################################################################################################################################
+
+### Create if Results dir  not exists** 
+if not os.path.exists(DIR):
+  try:
+     os.makedirs(DIR)
+  except IOError:
+     sys.exit( 'Unable to acess ' + SCRIPT_DIR )
 
 IS_t=0
 IS_u=0
@@ -712,7 +652,7 @@ def IS_ssh (j,link_data):
     gtp_corr_comm=''
     vifn_mode_comm=''
     Tcm_conn_comm=''
-    If_xdr=''
+    If_xdr_comm=''
     if j in link_data:
        for interface in link_data[j]['IF']:
              sip= """ echo "if_%s:"|tr '\\n' ' '; echo -e "11\\n get dump mobile_tables %s\\nexit\\n"|sudo /opt/NetScout/rtm/bin/localconsole|grep -o ses_sip_db.*|awk '{print $ 3,$5,$6,$10}' OFS=',';"""%(interface,interface)
@@ -905,7 +845,7 @@ def write_link_summary(Data,is_output,DIR,Voice_IS,is_ip,IS_col):
          sip_db_out=is_output[i][IS_col.index('Sip_db')]
          gtp_corr=is_output[i][IS_col.index('GTPv2_corr')]
          vifn_mode=is_output[i][IS_col.index('Vifn_mode')]
-         xdr =is_output[i][IS_col.index('Ifn_XDR_Status')
+         xdr =is_output[i][IS_col.index('Ifn_XDR_Status')]
          if S1MME:
            s1_nas=is_output[i][IS_col.index('NAS_Deciphering rate %')]
       #else:
@@ -1169,17 +1109,17 @@ def get_link_data(PM_ip,Data,is_list,Voice_IS):
              elif re.search('.*:.*:.*:.*:.*:.*:.*:.*',i):
                     ip=i.replace(":","_")
              
-             SQL_comm="""sudo mkdir -p %s;"""%(DIR)
-             SQL_comm+=""" echo "SELECT a.appid,a.targettime,a.pps,a.util,b.lh_pps FROM( SELECT appid,targettime, (vitalstats_packetsout+vitalstats_packetsin) as PPS,((vitalstats_octetsout+vitalstats_octetsin)/450000)as UTIL FROM hourly_vitalstats_%s_%s WHERE appid=184549377 ) a JOIN (SELECT appid,(vitalstats_packetsout+vitalstats_packetsin)as lh_pps FROM hourly_vitalstats_%s_%s WHERE appid=184549377 ORDER BY targettime DESC LIMIT 1 )b on a.appid=b.appid ORDER BY pps DESC LIMIT 1;" |sudo tee %s/input_pps_lu;"""%(ip,j,ip,j,DIR)
+             SQL_comm="""   sudo mkdir -p %s;"""%(DIR)
+             SQL_comm+="""  echo "SELECT a.appid,a.targettime,a.pps,a.util,b.lh_pps FROM( SELECT appid,targettime, (vitalstats_packetsout+vitalstats_packetsin) as PPS,((vitalstats_octetsout+vitalstats_octetsin)/450000)as UTIL FROM hourly_vitalstats_%s_%s WHERE appid=184549377 ) a JOIN (SELECT appid,(vitalstats_packetsout+vitalstats_packetsin)as lh_pps FROM hourly_vitalstats_%s_%s WHERE appid=184549377 ORDER BY targettime DESC LIMIT 1 )b on a.appid=b.appid ORDER BY pps DESC LIMIT 1;" |sudo tee %s/input_pps_lu;"""%(ip,j,ip,j,DIR)
              SQL_comm+="""  echo "SELECT appid,targettime, (vitalstats_packetsout+vitalstats_packetsin)as Dp FROM hourly_vitalstats_%s_%s WHERE appid=184549384 ORDER BY Dp DESC LIMIT 1;" |sudo tee %s/input_dp;"""%(ip,j,DIR)
              SQL_comm+="""  echo "SELECT a.appid,a.targettime, a.Dp,b.pps FROM (  SELECT appid,targettime, (vitalstats_packetsout+vitalstats_packetsin) as Dp FROM hourly_vitalstats_%s_%s WHERE appid=184549384) a JOIN (SELECT appid,targettime,(vitalstats_packetsout+vitalstats_packetsin) as PPS FROM hourly_vitalstats_%s_%s WHERE appid=184549377) b on a.targettime=b.targettime order by b.pps DESC LIMIT 1;" |sudo tee %s/input_dp_peak_pps;"""%(ip,j,ip,j,DIR)
              ####CRC error
-             SQL_comm="""SELECT appid,(vitalstats_packetsout+vitalstats_packetsin)as lh_crc_pps FROM hourly_vitalstats_%s_%s WHERE appid=184549378 ORDER BY targettime DESC LIMIT 1| sudo tee %s/input_crc_pps;"""%(ip,j,DIR)
+             SQL_comm+="""  echo "SELECT appid,(vitalstats_packetsout+vitalstats_packetsin)as lh_crc_pps FROM hourly_vitalstats_%s_%s WHERE appid=184549378 ORDER BY targettime DESC LIMIT 1;"| sudo tee %s/input_crc_pps;"""%(ip,j,DIR)
 
              SQL_comm+=""" sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_pps_lu %s/out_pps_lu_%s_%s;\
                       sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_dp %s/out_dp_%s_%s;\
                       sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_dp_peak_pps %s/out_dp_pps_%s_%s;\
-                      sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_crc_pps %s/out_crc_%s_%s;"""%(DIR,DIR,ip,j,DIR,DIR,ip,j,DIR,DIR,ip,j,DIR,ip,j)
+                      sudo /opt/NetScout/rtm/bin/nGeniusSQL.sh %s/input_crc_pps %s/out_crc_%s_%s;"""%(DIR,DIR,ip,j,DIR,DIR,ip,j,DIR,DIR,ip,j,DIR,DIR,ip,j)
              
              if Voice_IS:
                 SQL_comm+="""  echo "SELECT MAX(sum)  FROM (SELECT sum(activestreamsin) FROM hourly_uc_kpi_%s_%s GROUP BY targettime) AS foo" |sudo tee %s/input_uckpi;"""%(ip,j,DIR)
@@ -1189,7 +1129,7 @@ def get_link_data(PM_ip,Data,is_list,Voice_IS):
              SQL_output="""  grep 184549377 %s/out_pps_lu_%s_%s|awk -F, '{print $4,$3,$2,$5}' OFS=";"|tr "\n" ";";\
                           grep 184549384 %s/out_dp_%s_%s| awk -F, '{print $3,$2}' OFS=";"|tr "\n" ";";\
                           grep 184549384 %s/out_dp_pps_%s_%s| awk -F, '{print $3}' OFS=";"|tr "\n" ";";\
-                          grep 184549378 %s/out_crc_%s_%s| awk -F, '{print $2}' OFS=";"|tr "\n" ";"\
+                          grep 184549378 %s/out_crc_%s_%s| awk -F, '{print $2}' OFS=";"|tr "\n" ";";\
                           if [ -f %s/out_uckpi_%s_%s ]; then tail -1  %s/out_uckpi_%s_%s;fi """%(DIR,ip,j,DIR,ip,j,DIR,ip,j,DIR,ip,j,DIR,ip,j,DIR,ip,j)
            
              out_p1,err1=ssh_command(PM_ip, SQL_comm)
@@ -1200,7 +1140,7 @@ def get_link_data(PM_ip,Data,is_list,Voice_IS):
             
              _link={}
             ## data_if:[ 24 hr Link Util Gbps, 24 hr peak pps (K), PPS time,Last hr peak pps (K),dropped packets, dropped packet time,dropped_packets_at_pps, active streams,total pkts]
-            ##Keys: 24_hr_util, 24_hr_pps, pps_time, last_hr_pps, dp_peak,dp_time, dp_peak_pps, active_str, tot_pkts
+            ##Keys: 24_hr_util, 24_hr_pps, pps_time, last_hr_pps, dp_peak,dp_time, dp_peak_pps, crc,active_str, tot_pkts
              ## Total Packets
              _link['tot_pkts']=int(data_out[1])
 
@@ -1411,11 +1351,12 @@ def IS_data_collection (is_output,link_data,IS_col):
                              IS_If_notraffic_lasthr[i[IS_col.index('Hostname')]].append('If-%s'%IF)
 
                     ### CRC Error
-                    Total_If_crc_err=Total_If_crc_err+1
+                    if  link_data[ip]['data_'+IF]['crc'] != '0':
+                         Total_If_crc_err=Total_If_crc_err+1
                          if i[IS_col.index('Hostname')] not in IS_If_CRCs:
-                             IS_If_CRCs.update({i[IS_col.index('Hostname')]:['If-%s'%IF]})
+                                  IS_If_CRCs.update({i[IS_col.index('Hostname')]:['If-%s'%IF]})
                          elif i[IS_col.index('Hostname')] in IS_If_CRCs:
-                             IS_If_CRCs[i[IS_col.index('Hostname')]].append('If-%s'%IF)
+                                  IS_If_CRCs[i[IS_col.index('Hostname')]].append('If-%s'%IF)
      
                  
      return {
