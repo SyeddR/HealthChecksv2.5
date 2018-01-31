@@ -1,6 +1,6 @@
 #! /usr/bin/python
 ### --Version 2.5.6
-### NETSCOUT nGONE and Infinisteam Devices Health check script prepared by Syed Rehman(last updated 12/01/15)
+### NETSCOUT nGONE and Infinisteam Devices Health check script, prepared by Syed Rehman(last updated 12/01/15)
 
 ### Last Updated :01/31/2018
 
@@ -38,7 +38,7 @@ Deployment='NE'
 SMTP_IP='10.194.80.114' ### SMTP IP for sending emails
 S1MME           = True    ### True if deployment is monitoring s1mme interfaces (only for Wireless Service Provider EPC monitoring) else False.
 GTPv2_DATA_Corr = True    ### True if monitoring data plane (for e.g. S1U/S5U) with control plane (S11/S5).
-Voice_IS        = False    ### True if deployment has voice monitoring enabled on any IS else False.
+Voice_IS        = True    ### True if deployment has voice monitoring enabled on any IS else False.
 Ping_Disable    = False   ### True if Network has ICMP blocked. The script wont check Ping status if set to True, otherwise keep it False 
 Config_Backup   = '/opt/NetScout/rtm/database/config-backup'   ### Default Config backup dir, please change if it is different.
 Login           = 'netscout'  ###USER LOGIN ***Make sure SSH trusts are already created with this login
