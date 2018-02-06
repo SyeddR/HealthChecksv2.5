@@ -230,7 +230,7 @@ def main(argv):
    'Tcm connection shortages': ['if_\d:[1-9]',IS_col.index('TCM Conn shortages')],
    'nsprobe uptime > 100 days': ['1[0-9][1-9] days',IS_col.index('nsprobe uptime')],
    'System time':['^(?!(?=.*%s)(?=.*%s)(?=.*%s))'%(Day,Mon,Yr),IS_col.index('Date')],
-   'HW Clock':['^(?!(?=.*%s)(?=.*%s)(?=.*%s))'%(Day,Mon,Yr),IS_col.index('Date')]}
+   'HW Clock':['^(?!(?=.*%s)(?=.*%s)(?=.*%s))'%(Day,Mon,Yr),IS_col.index('HW_Clock')]}
    
    ##,'Uptime > 200 days':['up [2-9][0-9][0-9]',IS_col.index('Uptime')]--Deprecated inv2.4
    IS_err_summ=get_error_summary(IS_err, is_list_output) 
@@ -311,7 +311,7 @@ def PM_thread(List):
    for line in List: 
       global pm_output 
       a= line.split(",")
-      b=pm_local_ssh (str(a[0]),str(a[1]))
+      b=pm_local_ssh (str(a[0]),str(a[1])) 	
       if b: 
         pm_output[a[0]]=b
    
