@@ -1,8 +1,8 @@
 #! /usr/bin/python
-### --Version 2.5.6
+### --Version 2.5.7
 ### NETSCOUT nGONE and Infinisteam Devices Health check script, prepared by Syed Rehman(last updated 12/01/15)
 
-### Last Updated :02/05/2018
+### Last Updated :02/06/2018
 
 ##########################################################################################################################################
  
