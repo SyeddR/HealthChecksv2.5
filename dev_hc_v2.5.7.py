@@ -1448,9 +1448,12 @@ def PM_data_collection (pm_output, pm_input_list,PM_col):
                  Total_local_storage='NA'
               
          ### PM HDD
-                  ### Total Storage
+         ### Total Storage
          if re.search('[0-9]',j[PM_col.index('HDD')]):
-              PM_HDD+=int(j[PM_col.index('HDD')])
+	          try:
+                     PM_HDD+=int(j[PM_col.index('HDD')])
+	          except ValueError:
+			     pass
          
      return {
         'PM_Type':PM_type,
@@ -1842,7 +1845,7 @@ def pm_output_post_processing(pm_output,PM_col):
              pm_output[ip][PM_col.index('Config_Backup Last Date')]='NA'
   
     for col in PM_col:
-        if re.search('No such File or directory',pm_output[ip][PM_col.index(col)] ):
+        if re.search('No such file or directory',pm_output[ip][PM_col.index(col)] ):
             pm_output[ip][PM_col.index(col)]='NA' 
         
     
